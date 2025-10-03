@@ -1,0 +1,27 @@
+# Build outputs
+target/
+**/target/
+build/
+out/
+
+# Java
+*.class
+
+# Archives
+*.jar
+*.war
+*.ear
+
+# Logs
+*.log
+
+# IDE
+.idea/
+*.iml
+*.ipr
+*.iws
+.vscode/
+.DS_Store
+
+# Maven wrapper (do not push jar)
+.mvn/wrapper/maven-wrapper.jar

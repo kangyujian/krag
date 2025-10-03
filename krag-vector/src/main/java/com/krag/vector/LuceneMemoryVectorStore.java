@@ -14,6 +14,7 @@ import org.apache.lucene.search.IndexSearcher;
 import org.apache.lucene.search.ScoreDoc;
 import org.apache.lucene.search.TopDocs;
 import org.apache.lucene.search.KnnVectorQuery;
+import org.apache.lucene.search.TermQuery;
 import org.apache.lucene.store.Directory;
 import org.apache.lucene.store.ByteBuffersDirectory;
 import org.springframework.stereotype.Component;
@@ -108,6 +109,30 @@ public class LuceneMemoryVectorStore implements VectorStore {
         try {
             ni.writer.deleteDocuments(new Term("docId", docId));
             ni.writer.commit();
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    @Override
+    public synchronized List<SearchResult> findByDoc(String tenantId, String kbId, String docId) {
+        NamespaceIndex ni = ns(tenantId, kbId);
+        try {
+            DirectoryReader reader = DirectoryReader.open(ni.directory);
+            IndexSearcher searcher = new IndexSearcher(reader);
+            TopDocs topDocs = searcher.search(new TermQuery(new Term("docId", docId)), Integer.MAX_VALUE);
+            List<SearchResult> results = new ArrayList<>();
+            for (ScoreDoc sd : topDocs.scoreDocs) {
+                Document doc = searcher.doc(sd.doc);
+                SearchResult sr = new SearchResult();
+                sr.setDocId(doc.get("docId"));
+                sr.setChunkId(doc.get("chunkId"));
+                sr.setText(doc.get("text"));
+                sr.setScore(sd.score);
+                results.add(sr);
+            }
+            reader.close();
+            return results;
         } catch (IOException e) {
             throw new RuntimeException(e);
         }

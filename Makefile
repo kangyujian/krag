@@ -57,7 +57,7 @@ tail:
 test:
 	@echo "Running ingestion tests (requires API at http://localhost:$(PORT))"
 	@curl -sS "http://localhost:$(PORT)/api/v1/hello" > /dev/null || (echo "API not ready on :$(PORT). Start with 'make start' or 'make run'." && exit 1)
-	python3 tests/python/test_ingest.py
+	python3 tests/python/test_ingest.py && python3 tests/python/test_query.py
 
 clean:
 	mvn clean

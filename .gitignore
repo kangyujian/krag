@@ -15,6 +15,11 @@ out/
 # Logs
 *.log
 
+# Runtime PID files and run directory
+krag-api.pid
+.run/
+.run/*.pid
+
 # IDE
 .idea/
 *.iml

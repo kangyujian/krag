@@ -28,47 +28,95 @@ def post_multipart(url: str, field_name: str, filename: str, content_bytes: byte
         payload = resp.read().decode("utf-8")
         return status, payload
 
+def post_text_plain(url: str, content_bytes: bytes):
+    req = urllib.request.Request(url, data=content_bytes, method="POST")
+    req.add_header("Content-Type", "text/plain")
+    req.add_header("Content-Length", str(len(content_bytes)))
+    with urllib.request.urlopen(req, timeout=15) as resp:
+        status = resp.getcode()
+        payload = resp.read().decode("utf-8")
+        return status, payload
+
 
 def main() -> int:
-    url = "http://localhost:8080/api/v1/ingest/txt?tenantId=tenant1&kbId=kb1"
     content = b"This is a small text for pre-commit ingestion test.\nIt should produce vector embeddings.\n"
+
+    # Test multipart /ingest/txt
+    url_file = "http://localhost:8080/api/v1/ingest/txt?tenantId=tenant1&kbId=kb1"
     try:
-        status, payload = post_multipart(url, "file", "precommit.txt", content)
+        status_file, payload_file = post_multipart(url_file, "file", "precommit.txt", content)
     except Exception as e:
-        print(f"[python-test] Request failed: {e}", file=sys.stderr)
+        print(f"[python-test] /ingest/txt request failed: {e}", file=sys.stderr)
         return 1
 
-    if status != 200:
-        print(f"[python-test] Unexpected HTTP status: {status}", file=sys.stderr)
-        print(payload)
+    if status_file != 200:
+        print(f"[python-test] /ingest/txt unexpected HTTP status: {status_file}", file=sys.stderr)
+        print(payload_file)
         return 1
 
     try:
-        data = json.loads(payload)
+        data_file = json.loads(payload_file)
     except Exception as e:
-        print(f"[python-test] Failed to parse JSON: {e} | payload={payload}", file=sys.stderr)
+        print(f"[python-test] /ingest/txt failed to parse JSON: {e} | payload={payload_file}", file=sys.stderr)
         return 1
 
-    # Basic shape checks
-    if not isinstance(data, dict):
-        print(f"[python-test] Response is not a JSON object: {data}", file=sys.stderr)
+    if not isinstance(data_file, dict):
+        print(f"[python-test] /ingest/txt response is not a JSON object: {data_file}", file=sys.stderr)
         return 1
 
     required_keys = ["docId", "chunks", "dimension"]
     for k in required_keys:
-        if k not in data:
-            print(f"[python-test] Missing key '{k}' in response: {data}", file=sys.stderr)
+        if k not in data_file:
+            print(f"[python-test] /ingest/txt missing key '{k}' in response: {data_file}", file=sys.stderr)
             return 1
 
-    if not isinstance(data.get("dimension"), int) or data.get("dimension") <= 0:
-        print(f"[python-test] Invalid 'dimension' value: {data.get('dimension')}", file=sys.stderr)
+    if not isinstance(data_file.get("dimension"), int) or data_file.get("dimension") <= 0:
+        print(f"[python-test] /ingest/txt invalid 'dimension' value: {data_file.get('dimension')}", file=sys.stderr)
         return 1
 
-    if not isinstance(data.get("chunks"), int) or data.get("chunks") <= 0:
-        print(f"[python-test] Invalid 'chunks' value: {data.get('chunks')}", file=sys.stderr)
+    if not isinstance(data_file.get("chunks"), int) or data_file.get("chunks") <= 0:
+        print(f"[python-test] /ingest/txt invalid 'chunks' value: {data_file.get('chunks')}", file=sys.stderr)
         return 1
 
-    print("[python-test] Ingestion test passed:", json.dumps(data))
+    print("[python-test] /ingest/txt passed:", json.dumps(data_file))
+
+    # Test text/plain /ingest/text
+    url_text = "http://localhost:8080/api/v1/ingest/text?tenantId=tenant1&kbId=kb1&filename=inline.txt"
+    try:
+        status_text, payload_text = post_text_plain(url_text, content)
+    except Exception as e:
+        print(f"[python-test] /ingest/text request failed: {e}", file=sys.stderr)
+        return 1
+
+    if status_text != 200:
+        print(f"[python-test] /ingest/text unexpected HTTP status: {status_text}", file=sys.stderr)
+        print(payload_text)
+        return 1
+
+    try:
+        data_text = json.loads(payload_text)
+    except Exception as e:
+        print(f"[python-test] /ingest/text failed to parse JSON: {e} | payload={payload_text}", file=sys.stderr)
+        return 1
+
+    if not isinstance(data_text, dict):
+        print(f"[python-test] /ingest/text response is not a JSON object: {data_text}", file=sys.stderr)
+        return 1
+
+    for k in required_keys:
+        if k not in data_text:
+            print(f"[python-test] /ingest/text missing key '{k}' in response: {data_text}", file=sys.stderr)
+            return 1
+
+    if not isinstance(data_text.get("dimension"), int) or data_text.get("dimension") <= 0:
+        print(f"[python-test] /ingest/text invalid 'dimension' value: {data_text.get('dimension')}", file=sys.stderr)
+        return 1
+
+    if not isinstance(data_text.get("chunks"), int) or data_text.get("chunks") <= 0:
+        print(f"[python-test] /ingest/text invalid 'chunks' value: {data_text.get('chunks')}", file=sys.stderr)
+        return 1
+
+    print("[python-test] /ingest/text passed:", json.dumps(data_text))
     return 0
 
 

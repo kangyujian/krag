@@ -1,0 +1,13 @@
+server:
+  port: 8080
+spring:
+  application:
+    name: krag-api
+
+krag:
+  model:
+    provider: qwen   # MVP：默认模型供应商（可配置）
+  embedding:
+    provider: default
+  store:
+    provider: memory

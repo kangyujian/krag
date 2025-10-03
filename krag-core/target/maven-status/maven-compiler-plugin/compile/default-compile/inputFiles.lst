@@ -1,0 +1,10 @@
+/Users/kangyujian/IdeaProjects/krag/krag-core/src/main/java/com/krag/core/chunk/TextChunker.java
+/Users/kangyujian/IdeaProjects/krag/krag-core/src/main/java/com/krag/core/embed/EmbeddingModel.java
+/Users/kangyujian/IdeaProjects/krag/krag-core/src/main/java/com/krag/core/llm/LLMClient.java
+/Users/kangyujian/IdeaProjects/krag/krag-core/src/main/java/com/krag/core/model/ContextDoc.java
+/Users/kangyujian/IdeaProjects/krag/krag-core/src/main/java/com/krag/core/model/SearchResult.java
+/Users/kangyujian/IdeaProjects/krag/krag-core/src/main/java/com/krag/core/model/VectorRecord.java
+/Users/kangyujian/IdeaProjects/krag/krag-core/src/main/java/com/krag/core/parse/DocumentParser.java
+/Users/kangyujian/IdeaProjects/krag/krag-core/src/main/java/com/krag/core/retrieve/Retriever.java
+/Users/kangyujian/IdeaProjects/krag/krag-core/src/main/java/com/krag/core/store/VectorStore.java
+/Users/kangyujian/IdeaProjects/krag/krag-core/src/main/java/com/krag/core/tenancy/TenancyContextHolder.java

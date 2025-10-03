@@ -1,0 +1,21 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# 轻量化 pre-commit：仅在 API 已启动时运行 Python 测试；不负责启动或打包服务。
+API_URL="http://localhost:8080/"
+HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" "$API_URL" || true)
+
+if [ "$HTTP_CODE" = "000" ]; then
+  echo "[pre-commit] API 未在 :8080 运行，跳过入库测试。"
+  echo "[pre-commit] 提示：请先启动服务，再手动执行：python3 tests/python/test_ingest.py"
+  exit 0
+fi
+
+echo "[pre-commit] 检测到 API (HTTP $HTTP_CODE)，开始运行入库测试..."
+if ! python3 tests/python/test_ingest.py; then
+  echo "[pre-commit] 入库测试失败，终止提交。" >&2
+  exit 1
+fi
+
+echo "[pre-commit] 入库测试通过。"
+exit 0

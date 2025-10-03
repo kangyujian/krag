@@ -1,0 +1,112 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>KRAG · Hello World</title>
+    <style>
+      :root {
+        color-scheme: light dark;
+        --bg: radial-gradient(1200px 600px at 20% 0%, rgba(99,102,241,.25), transparent),
+              radial-gradient(1200px 600px at 80% 100%, rgba(16,185,129,.25), transparent);
+        --card-bg: rgba(255,255,255,0.65);
+        --border: rgba(0,0,0,.08);
+        --text: #111827;
+        --muted: #6b7280;
+      }
+      @media (prefers-color-scheme: dark) {
+        :root {
+          --card-bg: rgba(17,24,39,0.6);
+          --border: rgba(255,255,255,.08);
+          --text: #e5e7eb;
+          --muted: #9ca3af;
+        }
+      }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        min-height: 100vh;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", "Apple Color Emoji", "Segoe UI Emoji";
+        background: linear-gradient(180deg, rgba(0,0,0,.02), rgba(0,0,0,.02)), var(--bg);
+        backdrop-filter: saturate(140%);
+        color: var(--text);
+      }
+      .shell { max-width: 960px; margin: 0 auto; padding: 32px 20px; }
+      header { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+      .brand { display: flex; align-items: center; gap: 10px; }
+      .logo { width: 28px; height: 28px; border-radius: 8px; background: linear-gradient(135deg, #6366f1, #10b981); box-shadow: 0 6px 20px rgba(99,102,241,.35); }
+      .title { font-size: 20px; font-weight: 600; letter-spacing: .2px; }
+      .badge { font-size: 12px; color: var(--muted); padding: 6px 10px; border: 1px solid var(--border); border-radius: 999px; background: var(--card-bg); }
+
+      .hero { margin: 36px 0 8px; }
+      .hero h1 { font-size: clamp(28px, 4vw, 40px); margin: 0; line-height: 1.15; }
+      .hero p { margin: 10px 0 0; color: var(--muted); }
+
+      .grid { display: grid; grid-template-columns: repeat(12, 1fr); gap: 18px; margin-top: 22px; }
+      .card { grid-column: span 12; padding: 18px; border-radius: 14px; border: 1px solid var(--border); background: var(--card-bg); box-shadow: 0 8px 30px rgba(0,0,0,.06); }
+      @media (min-width: 720px) { .card { grid-column: span 8; } }
+
+      .actions { display: flex; align-items: center; gap: 12px; }
+      .btn {
+        padding: 10px 14px; border-radius: 12px; border: 1px solid rgba(99,102,241,.35);
+        background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
+        color: #fff; font-weight: 600; cursor: pointer; transition: transform .12s ease, box-shadow .12s ease;
+        box-shadow: 0 8px 18px rgba(79,70,229,.35);
+      }
+      .btn:hover { transform: translateY(-1px); box-shadow: 0 10px 22px rgba(79,70,229,.45); }
+      .btn:active { transform: translateY(0); }
+
+      pre { margin-top: 12px; background: rgba(0,0,0,.06); padding: 12px; border-radius: 12px; overflow: auto; border: 1px solid var(--border); }
+      @media (prefers-color-scheme: dark) { pre { background: rgba(255,255,255,.06); } }
+
+      footer { margin: 28px 0 8px; color: var(--muted); font-size: 12px; display: flex; gap: 8px; align-items: center; }
+    </style>
+  </head>
+  <body>
+    <div class="shell">
+      <header>
+        <div class="brand">
+          <div class="logo" aria-hidden="true"></div>
+          <div class="title">KRAG</div>
+        </div>
+        <span class="badge">MVP · Simple RAG</span>
+      </header>
+
+      <section class="hero">
+        <h1>让 RAG 更简单、更好用</h1>
+        <p>最简首页 + 一键调用后端接口，便于后续接入 ingest 与 query。</p>
+      </section>
+
+      <div class="grid">
+        <div class="card">
+          <div class="actions">
+            <span>示例：调用后端 <code>/api/v1/hello</code></span>
+            <button id="ping" class="btn">调用接口</button>
+          </div>
+          <pre id="output">点击「调用接口」查看返回结果</pre>
+        </div>
+      </div>
+
+      <footer>
+        <span>© 2025 KRAG</span>
+        <span>·</span>
+        <span>Designed with minimal, modern UI</span>
+      </footer>
+    </div>
+
+    <script>
+      const btn = document.getElementById('ping');
+      const out = document.getElementById('output');
+      btn.addEventListener('click', async () => {
+        out.textContent = '请求中...';
+        try {
+          const resp = await fetch('/api/v1/hello');
+          const json = await resp.json();
+          out.textContent = JSON.stringify(json, null, 2);
+        } catch (e) {
+          out.textContent = '请求失败: ' + (e && e.message ? e.message : e);
+        }
+      });
+    </script>
+  </body>
+</html>

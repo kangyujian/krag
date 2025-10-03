@@ -36,6 +36,11 @@
         </dependency>
         <dependency>
             <groupId>com.krag</groupId>
+            <artifactId>krag-embedding</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.krag</groupId>
             <artifactId>krag-llm</artifactId>
             <version>${project.version}</version>
         </dependency>

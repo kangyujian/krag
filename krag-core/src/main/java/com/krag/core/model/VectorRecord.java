@@ -1,11 +1,14 @@
 package com.krag.core.model;
 
+import lombok.Data;
+
 import java.util.Map;
 
+@Data
 public class VectorRecord {
-    public String chunkId;
-    public String docId;
-    public String source;
-    public float[] vector;
-    public Map<String, String> metadata;
+    private String chunkId;
+    private String docId;
+    private String source;
+    private float[] vector;
+    private Map<String, String> metadata;
 }

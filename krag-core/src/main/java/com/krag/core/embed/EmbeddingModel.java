@@ -8,3 +8,4 @@ public interface EmbeddingModel {
     float[] embed(String text);
     List<float[]> embedBatch(List<String> texts);
 }
+

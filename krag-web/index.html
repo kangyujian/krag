@@ -1,0 +1,261 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>KRAG Web</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Element Plus CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/element-plus/dist/index.css">
+    <style>
+      :root { --brand: #3b82f6; }
+      body { font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, 'Fira Sans', 'Droid Sans', 'Helvetica Neue', Arial, sans-serif; margin: 0; background: #f7f9fc; }
+      .app-header { background: white; border-bottom: 1px solid #e5e7eb; padding: 12px 20px; display:flex; align-items:center; gap:12px; }
+      .brand { font-weight: 700; color: var(--brand); }
+      .container { max-width: 1080px; margin: 16px auto; padding: 0 16px; }
+      .card { background: white; border: 1px solid #e5e7eb; border-radius: 8px; padding: 16px; }
+      .muted { color:#6b7280; }
+      .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; }
+      pre { background:#0b1020; color:#d6e2ff; padding:12px; border-radius:8px; overflow:auto; }
+    </style>
+  </head>
+  <body>
+    <div id="app">
+      <header class="app-header">
+        <div class="brand">KRAG</div>
+        <div class="muted">Extensible RAG Platform</div>
+      </header>
+
+      <div class="container">
+        <div class="card">
+          <el-row :gutter="12" style="margin-bottom: 12px">
+            <el-col :span="6">
+              <el-input v-model="tenantId" placeholder="tenantId"></el-input>
+            </el-col>
+            <el-col :span="6">
+              <el-input v-model="kbId" placeholder="kbId"></el-input>
+            </el-col>
+            <el-col :span="12">
+              <el-input v-model="baseUrl" placeholder="Backend Base URL" class="mono"></el-input>
+            </el-col>
+          </el-row>
+
+          <el-tabs v-model="tab">
+            <el-tab-pane label="Ingest" name="ingest">
+              <el-card shadow="never">
+                <template #header>
+                  <div style="display:flex;justify-content:space-between;align-items:center">
+                    <span>Upload Document</span>
+                    <el-tag type="success" v-if="lastDocId">Last Doc ID: {{ lastDocId }}</el-tag>
+                  </div>
+                </template>
+                <el-form label-width="120px">
+                  <el-form-item label="Filename">
+                    <el-input v-model="filename" placeholder="e.g. sample.txt"></el-input>
+                  </el-form-item>
+                  <el-form-item label="Text">
+                    <el-input
+                      v-model="text"
+                      type="textarea"
+                      :rows="5"
+                      placeholder="Paste text to ingest..."
+                    ></el-input>
+                  </el-form-item>
+                  <el-form-item>
+                    <el-button type="primary" @click="ingestText" :loading="loading">Ingest Text</el-button>
+                    <el-divider direction="vertical"></el-divider>
+                    <input type="file" ref="fileInput" style="display:none" @change="ingestFileChange" />
+                    <el-button @click="chooseFile">Choose File</el-button>
+                    <el-button type="success" @click="ingestFile" :disabled="!selectedFile" :loading="loading">Upload File</el-button>
+                    <span class="muted" v-if="selectedFile" style="margin-left:8px">{{ selectedFile.name }} ({{ selectedFile.size }} bytes)</span>
+                  </el-form-item>
+                </el-form>
+              </el-card>
+            </el-tab-pane>
+
+            <el-tab-pane label="Query" name="query">
+              <el-card shadow="never">
+                <template #header>
+                  <span>Semantic Search</span>
+                </template>
+                <el-form label-width="120px">
+                  <el-form-item label="Query">
+                    <el-input v-model="query" placeholder="Enter query text..."></el-input>
+                  </el-form-item>
+                  <el-form-item label="TopK / minScore">
+                    <el-input-number v-model="topK" :min="1" :max="50"></el-input-number>
+                    <el-input-number v-model="minScore" :step="0.01" :min="0" style="margin-left:8px"></el-input-number>
+                  </el-form-item>
+                  <el-form-item>
+                    <el-button type="primary" @click="doQuery" :loading="loading">Search</el-button>
+                  </el-form-item>
+                </el-form>
+                <el-table :data="results" style="width:100%" v-if="results.length">
+                  <el-table-column prop="docId" label="Doc ID" width="260"></el-table-column>
+                  <el-table-column prop="chunkId" label="Chunk" width="140"></el-table-column>
+                  <el-table-column prop="score" label="Score" width="120"></el-table-column>
+                  <el-table-column prop="text" label="Text"></el-table-column>
+                </el-table>
+              </el-card>
+            </el-tab-pane>
+
+            <el-tab-pane label="Document" name="doc">
+              <el-card shadow="never">
+                <template #header>
+                  <span>Fetch Document by ID</span>
+                </template>
+                <el-form label-width="120px">
+                  <el-form-item label="Doc ID">
+                    <el-input v-model="docId" placeholder="Enter document ID"></el-input>
+                  </el-form-item>
+                  <el-form-item>
+                    <el-button type="primary" @click="fetchDoc" :loading="loading">Fetch</el-button>
+                  </el-form-item>
+                </el-form>
+                <div v-if="docText">
+                  <h4>Document Text</h4>
+                  <pre>{{ docText }}</pre>
+                </div>
+              </el-card>
+            </el-tab-pane>
+          </el-tabs>
+        </div>
+      </div>
+    </div>
+
+    <!-- Vue & Element Plus (CDN) -->
+    <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
+    <script src="https://unpkg.com/element-plus"></script>
+    <script>
+      const { createApp, ref } = Vue;
+
+      createApp({
+        setup() {
+          const baseUrl = ref('http://localhost:8080');
+          const tenantId = ref('tenant1');
+          const kbId = ref('kb1');
+          const tab = ref('ingest');
+          const filename = ref('inline.txt');
+          const text = ref('');
+          const selectedFile = ref(null);
+          const loading = ref(false);
+          const lastDocId = ref('');
+          const query = ref('');
+          const topK = ref(5);
+          const minScore = ref(0.0);
+          const results = ref([]);
+          const docId = ref('');
+          const docText = ref('');
+
+          const notify = (type, message) => {
+            ElementPlus.ElMessage({ type, message, duration: 2200 });
+          };
+
+          const ingestText = async () => {
+            if (!text.value || !text.value.trim()) { notify('warning', 'Text is required'); return; }
+            if (!filename.value || !filename.value.endsWith('.txt')) { notify('warning', 'Filename must end with .txt'); return; }
+            loading.value = true;
+            try {
+              const url = `${baseUrl.value}/api/v1/ingest/text?tenantId=${encodeURIComponent(tenantId.value)}&kbId=${encodeURIComponent(kbId.value)}&filename=${encodeURIComponent(filename.value)}`;
+              const resp = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'text/plain' }, body: text.value });
+              const data = await resp.json();
+              if (resp.ok) {
+                lastDocId.value = data.docId || '';
+                notify('success', `Ingested: ${lastDocId.value}`);
+              } else {
+                notify('error', data.message || 'Ingest failed');
+              }
+            } catch (e) {
+              notify('error', String(e));
+            } finally {
+              loading.value = false;
+            }
+          };
+
+          const chooseFile = () => {
+            document.querySelector('input[type=file]').click();
+          };
+
+          const ingestFileChange = (e) => {
+            selectedFile.value = e.target.files && e.target.files[0] ? e.target.files[0] : null;
+          };
+
+          const ingestFile = async () => {
+            if (!selectedFile.value) { notify('warning', 'Please choose a file'); return; }
+            loading.value = true;
+            try {
+              const url = `${baseUrl.value}/api/v1/ingest/txt?tenantId=${encodeURIComponent(tenantId.value)}&kbId=${encodeURIComponent(kbId.value)}`;
+              const fd = new FormData();
+              fd.append('file', selectedFile.value, selectedFile.value.name);
+              const resp = await fetch(url, { method: 'POST', body: fd });
+              const data = await resp.json();
+              if (resp.ok) {
+                lastDocId.value = data.docId || '';
+                notify('success', `Uploaded: ${lastDocId.value}`);
+              } else {
+                notify('error', data.message || 'Upload failed');
+              }
+            } catch (e) {
+              notify('error', String(e));
+            } finally {
+              loading.value = false;
+            }
+          };
+
+          const doQuery = async () => {
+            if (!query.value || !query.value.trim()) { notify('warning', 'Query is required'); return; }
+            loading.value = true;
+            try {
+              const url = `${baseUrl.value}/api/v1/query`;
+              const body = { tenantId: tenantId.value, kbId: kbId.value, query: query.value, topK: topK.value, minScore: minScore.value };
+              const resp = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+              const data = await resp.json();
+              if (resp.ok) {
+                results.value = Array.isArray(data.results) ? data.results : [];
+                notify('success', `Found ${results.value.length} results`);
+              } else {
+                notify('error', data.message || 'Query failed');
+              }
+            } catch (e) {
+              notify('error', String(e));
+            } finally {
+              loading.value = false;
+            }
+          };
+
+          const fetchDoc = async () => {
+            if (!docId.value || !docId.value.trim()) { notify('warning', 'Doc ID is required'); return; }
+            loading.value = true;
+            try {
+              const url = `${baseUrl.value}/api/v1/query`;
+              const body = { tenantId: tenantId.value, kbId: kbId.value, docId: docId.value, full: true };
+              const resp = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+              const data = await resp.json();
+              if (resp.ok) {
+                docText.value = data.documentText || '';
+                notify('success', 'Document fetched');
+              } else {
+                notify('error', data.message || 'Fetch failed');
+              }
+            } catch (e) {
+              notify('error', String(e));
+            } finally {
+              loading.value = false;
+            }
+          };
+
+          return {
+            baseUrl, tenantId, kbId, tab,
+            filename, text, selectedFile, loading, lastDocId,
+            query, topK, minScore, results,
+            docId, docText,
+            ingestText, chooseFile, ingestFileChange, ingestFile,
+            doQuery, fetchDoc
+          };
+        }
+      }).use(ElementPlus).mount('#app');
+    </script>
+  </body>
+  </html>

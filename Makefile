@@ -61,3 +61,18 @@ test:
 
 clean:
 	mvn clean
+
+# ===== Web (Vue + Vite) =====
+.PHONY: web-install web-dev web-build web-preview
+
+web-install:
+	cd krag-web-app && npm install
+
+web-dev:
+	cd krag-web-app && npm run dev
+
+web-build:
+	cd krag-web-app && npm run build
+
+web-preview:
+	cd krag-web-app && npm run preview

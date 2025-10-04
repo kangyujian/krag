@@ -27,6 +27,7 @@ krag-api.pid
 *.iws
 .vscode/
 .DS_Store
+*.pid
 
 # Maven wrapper (do not push jar)
 .mvn/wrapper/maven-wrapper.jar

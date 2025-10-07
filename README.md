@@ -30,6 +30,15 @@
   - `curl http://localhost:8080/api/v1/hello`
   - 响应示例：`{"message":"Hello, KRAG!","version":"0.1.0-SNAPSHOT"}`
 
+### 前端（krag-web-app）
+- 安装 Node（macOS）：`brew install node`
+- 安装依赖：`make web-install`（等价于 `cd krag-web-app && npm install`）
+- 启动开发服务器：`make start-web`（优先 Vite `http://localhost:5173/`，无 Node 时回退到静态预览 `http://localhost:8000/index.html`）
+- 生产构建与预览：
+  - 构建：`make web-build`（等价于 `cd krag-web-app && npm run build`）
+  - 预览：`make web-preview`（或 `python3 -m http.server 8000 --directory krag-web-app/dist`）
+- 后端地址配置：在 `krag-web-app/.env.development` 中设置 `VITE_API_BASE_URL`，默认 `http://localhost:8080`。
+
 ## 配置说明
 - 应用配置：`krag-api/src/main/resources/application.yml`
   - `krag.model.provider`: 模型供应商（MVP 默认占位）。

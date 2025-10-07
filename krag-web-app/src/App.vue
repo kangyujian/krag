@@ -29,6 +29,9 @@
           <el-tab-pane label="Document" name="doc">
             <DocumentPage :tenant-id="tenantId" :kb-id="kbId" />
           </el-tab-pane>
+          <el-tab-pane label="Library" name="library">
+            <LibraryPage :tenant-id="tenantId" :kb-id="kbId" />
+          </el-tab-pane>
         </el-tabs>
 
         <div v-if="lastDocId" style="margin-top:8px">
@@ -44,6 +47,7 @@ import { ref, watch } from 'vue';
 import IngestPage from './pages/Ingest.vue';
 import QueryPage from './pages/Query.vue';
 import DocumentPage from './pages/Document.vue';
+import LibraryPage from './pages/Library.vue';
 
 const tenantId = ref('tenant1');
 const kbId = ref('kb1');

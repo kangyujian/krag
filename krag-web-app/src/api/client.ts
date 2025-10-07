@@ -11,6 +11,28 @@ export interface QueryResultItem {
   text?: string;
 }
 
+export interface DocListItem {
+  docId: string;
+  chunks: number;
+}
+
+export async function listDocs(params: { tenantId: string; kbId: string; page?: number; size?: number }) {
+  const res = await api.get('/api/v1/docs', { params });
+  return res.data as { tenantId: string; kbId: string; page: number; size: number; total: number; items: DocListItem[] };
+}
+
+export async function getDocChunks(params: { tenantId: string; kbId: string; docId: string; includeVectors?: boolean }) {
+  const res = await api.get('/api/v1/doc/chunks', { params });
+  return res.data as {
+    tenantId: string;
+    kbId: string;
+    docId: string;
+    chunks: { chunkId: string; text?: string }[];
+    vectors?: number[][];
+    dimension?: number;
+  };
+}
+
 export async function ingestText(
   tenantId: string,
   kbId: string,

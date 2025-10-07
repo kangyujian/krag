@@ -28,6 +28,14 @@ krag-api.pid
 .vscode/
 .DS_Store
 *.pid
+.run/*
+
 
 # Maven wrapper (do not push jar)
 .mvn/wrapper/maven-wrapper.jar
+
+# Local inspection outputs (do not commit)
+__inspect/
+
+# Node (do not commit dependencies)
+krag-web-app/node_modules/

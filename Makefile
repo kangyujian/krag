@@ -98,9 +98,17 @@ start-web:
 	  nohup bash -lc 'cd krag-web-app && npm run dev' >> $(FRONT_LOG) 2>&1 & echo $$! > .run/krag-web.pid; \
 	  echo "Web ready at http://localhost:$(FRONT_PORT)/"; \
 	else \
-	  echo "Node/npm not found. Starting static preview on :$(FRONT_FALLBACK_PORT)"; \
-	  nohup python3 -m http.server $(FRONT_FALLBACK_PORT) --directory krag-web >> $(FRONT_LOG) 2>&1 & echo $$! > .run/krag-web.pid; \
-	  echo "Web ready at http://localhost:$(FRONT_FALLBACK_PORT)/index.html"; \
+	  echo "Node/npm not found. Checking for built assets..."; \
+	  if [ -d "krag-web-app/dist" ]; then \
+	    echo "Serving built dist/ on :$(FRONT_FALLBACK_PORT)"; \
+	    nohup python3 -m http.server $(FRONT_FALLBACK_PORT) --directory krag-web-app/dist >> $(FRONT_LOG) 2>&1 & echo $$! > .run/krag-web.pid; \
+	    echo "Web ready at http://localhost:$(FRONT_FALLBACK_PORT)/index.html"; \
+	  else \
+	    echo "No dist/ found. Static preview of source may not work without Node/Vite."; \
+	    nohup python3 -m http.server $(FRONT_FALLBACK_PORT) --directory krag-web-app >> $(FRONT_LOG) 2>&1 & echo $$! > .run/krag-web.pid; \
+	    echo "Tip: install Node and run 'make start-web', or build with 'npm run build' then preview dist."; \
+	    echo "Preview at http://localhost:$(FRONT_FALLBACK_PORT)/index.html"; \
+	  fi; \
 	fi
 
 stop-web:

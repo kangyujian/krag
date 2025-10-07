@@ -30,6 +30,18 @@
   - `curl http://localhost:8080/api/v1/hello`
   - 响应示例：`{"message":"Hello, KRAG!","version":"0.1.0-SNAPSHOT"}`
 
+### 一键开发（Make）
+- 构建全部模块：`make install`
+- 后台启动 API（支持变量）：`make start` 或 `make start PORT=9090 PROFILE=dev`
+- 前后端一起启动：`make dev`（API 在 `http://localhost:8080/`，Web 在 `http://localhost:5173/` 或回退 `http://localhost:8000/`）
+- 停止服务：`make stop`、`make stop-web`、`make stop-all`
+- 查看日志：`make tail`（API）、`make tail-web`（Web）
+
+### 运行测试
+- 端到端最小验证：`make test`
+  - 需要 API 已启动（默认 `http://localhost:8080/`）。
+  - 执行 `tests/python/test_ingest.py` 与 `tests/python/test_query.py`。
+
 ### 前端（krag-web-app）
 - 安装 Node（macOS）：`brew install node`
 - 安装依赖：`make web-install`（等价于 `cd krag-web-app && npm install`）
@@ -38,6 +50,18 @@
   - 构建：`make web-build`（等价于 `cd krag-web-app && npm run build`）
   - 预览：`make web-preview`（或 `python3 -m http.server 8000 --directory krag-web-app/dist`）
 - 后端地址配置：在 `krag-web-app/.env.development` 中设置 `VITE_API_BASE_URL`，默认 `http://localhost:8080`。
+
+### API 示例（MVP）
+- 上传 `.txt` 入库：
+  - `curl -X POST 'http://localhost:8080/api/v1/ingest/txt' \
+      -H 'x-api-key: <your-key>' \
+      -F 'tenantId=t1' -F 'kbId=kb1' \
+      -F 'file=@/path/to/sample.txt'`
+- 提交问题检索与生成：
+  - `curl -X POST 'http://localhost:8080/api/v1/query' \
+      -H 'Content-Type: application/json' -H 'x-api-key: <your-key>' \
+      -d '{"tenantId":"t1","kbId":"kb1","query":"什么是KRAG？","topK":4}'`
+  - 响应包含答案与引用片段（`docId/chunkId/source/score`）。
 
 ## 配置说明
 - 应用配置：`krag-api/src/main/resources/application.yml`
@@ -62,6 +86,12 @@
 - 保持实现与接口的解耦，优先通过抽象层扩展新能力。
 - 代码风格遵循现有模块结构，避免不必要的重命名与耦合。
 - 构建产物与 IDE 文件已在 `.gitignore` 中忽略。
+
+## 常见问题（FAQ）
+- 端口被占用：使用 `make start PORT=<n>` 或脚本参数 `--kill` 释放端口。
+- Web 无法访问后端：检查 `krag-web-app/.env.development` 的 `VITE_API_BASE_URL` 与 API 端口一致。
+- JDK 版本：确保使用 `Java 17+`，可通过 `sdkman` 或 `brew` 管理。
+- 无 Node 环境：`make start-web` 会自动回退到 `python http.server` 静态预览，建议安装 Node 获取完整开发体验。
 
 ---
 

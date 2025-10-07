@@ -189,6 +189,72 @@ public class ContextDoc { String docId; String text; }
 - `GET /api/v1/stores`：列出可用的向量库实现。
 - 鉴权：MVP 使用 `x-api-key` 头简化；后续支持 OAuth2/JWT。
 
+### 8.1 请求示例
+
+创建租户：
+```
+curl -X POST 'http://localhost:8080/api/v1/tenants' \
+  -H 'x-api-key: <your-key>' \
+  -H 'Content-Type: application/json' \
+  -d '{"name":"demo-tenant"}'
+```
+
+创建知识库：
+```
+curl -X POST 'http://localhost:8080/api/v1/kbs' \
+  -H 'x-api-key: <your-key>' \
+  -H 'Content-Type: application/json' \
+  -d '{"tenantId":"t1","name":"kb1"}'
+```
+
+上传 `.txt` 入库：
+```
+curl -X POST 'http://localhost:8080/api/v1/ingest/txt' \
+  -H 'x-api-key: <your-key>' \
+  -F 'tenantId=t1' -F 'kbId=kb1' \
+  -F 'file=@/path/to/sample.txt'
+```
+
+查询：
+```
+curl -X POST 'http://localhost:8080/api/v1/query' \
+  -H 'x-api-key: <your-key>' \
+  -H 'Content-Type: application/json' \
+  -d '{"tenantId":"t1","kbId":"kb1","query":"什么是KRAG？","topK":4}'
+```
+
+### 8.2 响应示例（参考）
+
+`/ingest/txt`：
+```json
+{
+  "tenantId": "t1",
+  "kbId": "kb1",
+  "docId": "doc-20250101-0001",
+  "chunks": 12,
+  "embedded": 12,
+  "stored": 12
+}
+```
+
+`/query`：
+```json
+{
+  "answer": "KRAG 是一个可扩展的 RAG 检索中台……",
+  "contexts": [
+    {"docId": "doc-20250101-0001", "chunkId": "c01", "text": "……", "score": 0.83, "source": "sample.txt"},
+    {"docId": "doc-20250101-0001", "chunkId": "c02", "text": "……", "score": 0.79, "source": "sample.txt"}
+  ]
+}
+```
+
+### 8.3 错误码与约定（MVP）
+- 400：参数缺失或非法（如未携带 `tenantId/kbId`）。
+- 401：鉴权失败（`x-api-key` 无效）。
+- 404：租户或知识库不存在。
+- 422：文件解析失败或嵌入失败。
+- 500：服务内部错误（记录 `traceId` 便于排查）。
+
 ## 9. 配置与管理
 - `ModelRegistry`：模型与嵌入算法注册/选择（可通过配置文件或数据库）。
 - 业务快速接入：

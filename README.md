@@ -81,6 +81,7 @@
 ## 设计蓝图
 - 详见文档：`docs/RAG-MVP-设计.md`
 - 核心接口包括：`DocumentParser`、`TextChunker`、`EmbeddingModel`、`VectorStore`、`Retriever`、`LLMClient`、`TenancyContextHolder` 等。
+ - 嵌入扩展方案：`docs/文本嵌入可扩展方案.md`
 
 ## 贡献与开发建议
 - 保持实现与接口的解耦，优先通过抽象层扩展新能力。

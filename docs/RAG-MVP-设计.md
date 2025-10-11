@@ -306,3 +306,118 @@ curl -X POST 'http://localhost:8080/api/v1/query' \
 ---
 
 本文档定位为架构与接口蓝图。MVP 实现阶段请严格遵循抽象接口，避免实现层泄露到 API 与业务逻辑中，以保障后续向量库、嵌入与 LLM 的可插拔扩展。
+
+## 16. 文本嵌入可扩展方案（用于入库与检索）
+
+### 16.1 目标与原则
+- 可插拔：通过统一接口与工厂创建不同嵌入实现，业务无感切换。
+- 多租户隔离：按 `tenantId/kbId` 配置不同模型、参数与维度。
+- 高效稳健：批量嵌入、并发控制、重试与限流，保证稳定性与吞吐。
+- 一致抽象：入库与检索统一依赖 `EmbeddingModel`，降低耦合。
+
+### 16.2 核心接口与配置（krag-core）
+```java
+public interface EmbeddingModel {
+    String id();
+    int dimension();
+    float[] embed(String text);
+    List<float[]> embedBatch(List<String> texts);
+}
+
+public interface EmbeddingFactory {
+    boolean supports(String provider);
+    EmbeddingModel create(EmbeddingConfig config);
+}
+
+public class EmbeddingConfig {
+    public String provider;        // gte/bge/openai/qwen/local...
+    public String modelId;         // 具体模型标识
+    public Integer dimension;      // 可选覆盖维度
+    public Map<String,String> params; // apiKey/endpoint/timeout/rateLimit 等
+}
+```
+
+### 16.3 插件化（SPI）
+- 在 `krag-embedding` 中为每个供应商实现 `EmbeddingFactory` + `EmbeddingModel`。
+- 通过 Java `ServiceLoader` 注册：`META-INF/services/<EmbeddingFactory>`。
+- 运行时按 `provider` 选择对应工厂，创建模型实例。
+
+示例选择：
+```java
+ServiceLoader<EmbeddingFactory> loader = ServiceLoader.load(EmbeddingFactory.class);
+EmbeddingFactory f = loader.stream()
+  .map(ServiceLoader.Provider::get)
+  .filter(x -> x.supports(cfg.provider))
+  .findFirst()
+  .orElseThrow(() -> new IllegalArgumentException("No factory for " + cfg.provider));
+EmbeddingModel model = f.create(cfg);
+```
+
+### 16.4 模型注册与多租户配置（ModelRegistry）
+- `ModelRegistry` 负责解析 `tenantId/kbId` → `EmbeddingConfig`；支持全局默认、租户级、知识库级覆盖。
+
+`application.yml` 示例：
+```yaml
+krag:
+  embedding:
+    default:
+      provider: gte
+      modelId: gte-base-zh
+      dimension: 768
+      params:
+        endpoint: https://api.example.com/embed
+        apiKey: ${EMBED_API_KEY}
+        timeoutMs: "5000"
+    tenants:
+      t1:
+        provider: local
+        modelId: bge-small-local
+        dimension: 512
+      t2:
+        kb:
+          kb1:
+            provider: openai
+            modelId: text-embedding-3-small
+            dimension: 1536
+            params:
+              apiKey: ${OPENAI_API_KEY}
+              endpoint: https://api.openai.com/v1
+```
+
+### 16.5 入库流程集成
+- 流程：解析 → 分块 → `embedBatch` → 归一化 → `VectorStore.upsert`。
+- 并发：对分块批量嵌入（如批大小 32/64），线程池控制；对远程服务设置速率上限。
+- 归一化：使用 `L2 normalize`（若检索采用余弦相似度）。
+- 校验：统一维度，发现不一致即拒绝入库并记录。
+- 重试与降级：对 429/5xx 执行指数退避重试；不可用时切换到本地模型（若配置）。
+
+伪代码：
+```java
+List<String> chunks = chunker.chunk(texts, maxChars);
+EmbeddingModel model = registry.resolve(tenantId, kbId);
+List<float[]> vecs = model.embedBatch(chunks);
+vecs = vecs.stream().map(this::l2Normalize).toList();
+store.upsert(tenantId, kbId, toVectorRecords(docId, chunks, vecs));
+```
+
+### 16.6 缓存与去重
+- 片段级缓存：对相同文本（哈希）缓存嵌入结果（LRU + TTL），提升复用。
+- 内容归并：分块后去重合并近似重复，降低存储与计算。
+
+### 16.7 观测与成本
+- 指标：批量耗时、QPS、失败率、重试次数、维度一致性、向量库写入耗时。
+- 成本：按租户统计嵌入调用与字数，设置配额与告警阈值。
+- 安全：密钥通过环境或密钥管理注入，不写入日志。
+
+### 16.8 测试
+- 单测：维度与归一化、批量接口、异常与重试、限流策略。
+- 集成：入库串联（解析/分块/嵌入/入库），模拟远程失败与降级。
+- 端到端：多租户差异配置下的入库与检索闭环。
+
+### 16.9 新增嵌入实现的步骤
+1) 在 `krag-embedding` 新增 `vendorX` 包，提供 `EmbeddingFactory` 与 `EmbeddingModel`。
+2) 在 `META-INF/services/...EmbeddingFactory` 注册工厂类。
+3) 在 `application.yml` 配置 `provider: vendorX` 与模型参数。
+4) 编写测试（维度、批量、异常场景）并跑入库集成测试。
+
+该方案在不改动业务层的前提下，通过配置与插件化实现嵌入能力的可扩展与可切换，满足性能、稳定性与多租户隔离需求。
